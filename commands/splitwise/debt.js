@@ -21,15 +21,38 @@ module.exports = {
 
             const groupData = response.data.group;
             let message = `**${groupData.name} - Balances**\n`;
+            // Map user IDs to names for easy lookup
+            const idToName = {};
             groupData.members.forEach(member => {
-                const fullName = member.last_name ? `${member.first_name} ${member.last_name}` : member.first_name;
+                idToName[member.id] = member.last_name ? `${member.first_name} ${member.last_name}` : member.first_name;
+            });
+
+            // Balances section
+            groupData.members.forEach(member => {
+                const fullName = idToName[member.id];
                 member.balance.forEach(balance => {
                     const amount = parseFloat(balance.amount);
-                    const status = amount > 0 ? 'is owed' : amount < 0 ? 'owes' : 'is settled';
-                    const absAmount = Math.abs(amount).toFixed(2);
-                    message += `${fullName}: ${status} ${balance.currency_code} ${absAmount}\n`;
+                    if (amount === 0) {
+                        message += `${fullName}: is settled\n`;
+                    }
+                    else {
+                        const status = amount > 0 ? 'is owed' : 'owes';
+                        const absAmount = Math.abs(amount).toFixed(2);
+                        message += `${fullName}: ${status} ${balance.currency_code} ${absAmount}\n`;
+                    }
                 });
             });
+
+            // Who owes who section
+            if (groupData.simplified_debts && groupData.simplified_debts.length > 0) {
+                message += '\n**Who owes who:**\n';
+                groupData.simplified_debts.forEach(debt => {
+                    const fromName = idToName[debt.from] || `User ${debt.from}`;
+                    const toName = idToName[debt.to] || `User ${debt.to}`;
+                    const absAmount = Math.abs(parseFloat(debt.amount)).toFixed(2);
+                    message += `${fromName} owes ${toName} ${debt.currency_code} ${absAmount}\n`;
+                });
+            }
             await interaction.editReply(message);
         }
         catch (error) {
