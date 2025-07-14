@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { splitwise_api_key, groupId } = require('../../config.json');
+const { splitwise_api_key, groupId, splitwiseToDiscord } = require('../../config.json');
 const axios = require('axios');
 
 module.exports = {
@@ -21,7 +21,7 @@ module.exports = {
 
             const groupData = response.data.group;
             let message = `**${groupData.name} - Balances**\n`;
-            // Map user IDs to names for easy lookup
+            // Map user IDs to names for easy lookup (without Splitwise ID)
             const idToName = {};
             groupData.members.forEach(member => {
                 idToName[member.id] = member.last_name ? `${member.first_name} ${member.last_name}` : member.first_name;
@@ -33,12 +33,12 @@ module.exports = {
                 member.balance.forEach(balance => {
                     const amount = parseFloat(balance.amount);
                     if (amount === 0) {
-                        message += `${fullName}: is settled\n`;
+                        message += `${fullName} is settled\n`;
                     }
                     else {
                         const status = amount > 0 ? 'is owed' : 'owes';
                         const absAmount = Math.abs(amount).toFixed(2);
-                        message += `${fullName}: ${status} ${balance.currency_code} ${absAmount}\n`;
+                        message += `${fullName} ${status} ${balance.currency_code} ${absAmount}\n`;
                     }
                 });
             });
@@ -47,10 +47,12 @@ module.exports = {
             if (groupData.simplified_debts && groupData.simplified_debts.length > 0) {
                 message += '\n**Who owes who:**\n';
                 groupData.simplified_debts.forEach(debt => {
-                    const fromName = idToName[debt.from] || `User ${debt.from}`;
-                    const toName = idToName[debt.to] || `User ${debt.to}`;
+                    const fromId = debt.from.toString();
+                    const fromMention = splitwiseToDiscord[fromId] ? `<@${splitwiseToDiscord[fromId]}>` : idToName[debt.from] || `${debt.from}`;
+                    // Only show name (not tag) for toMention
+                    const toMention = idToName[debt.to] || `${debt.to}`;
                     const absAmount = Math.abs(parseFloat(debt.amount)).toFixed(2);
-                    message += `${fromName} owes ${toName} ${debt.currency_code} ${absAmount}\n`;
+                    message += `${fromMention} owes ${toMention} ${debt.currency_code} ${absAmount}\n`;
                 });
             }
             await interaction.editReply(message);
