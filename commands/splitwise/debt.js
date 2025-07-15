@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { splitwise_api_key, groupId, splitwiseToDiscord } = require('../../config.json');
+const { splitwise_api_key, groupId, splitwiseToDiscord } = require('../../config.js');
 const axios = require('axios');
 
 module.exports = {
