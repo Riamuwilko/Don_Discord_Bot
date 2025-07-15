@@ -1,4 +1,4 @@
-`# Don Discord Bot (Splitwise Integration)
+# Don Discord Bot (Splitwise Integration)
 
 A Discord bot that integrates with Splitwise to manage group expenses and payments.
 
